@@ -1,0 +1,8 @@
+.secrets/
+target/
+dbt_project/logs/
+dbt_packages/
+airflow_fresh/dags/__pycache__
+airflow_fresh/logs
+airflow_fresh/airflow.db
+airflow_fresh/airflow.cfg
