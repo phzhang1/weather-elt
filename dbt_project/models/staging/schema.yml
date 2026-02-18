@@ -1,0 +1,81 @@
+version: 2 # dbt schema version
+
+models: # list of models in the staging layer
+  - name: stg_weather_current
+    description: "Staged current weather data from OpenWeather One Call API. Light transforms only: JSON extraction, column renaming, and type casting."
+
+
+    columns: # list of columns in the model
+      - name: observation_timestamp
+        description: "Unix timestamp (UTC) when the observation was recorded"
+        tests:
+          - not_null # test to ensure the column is not null
+
+      - name: temperature_kelvin
+        description: "Temperature in Kelvin"
+        tests:
+          - not_null
+
+      - name: humidity_percent
+        description: "Humidity percentage (0-100)"
+        tests:
+          - not_null
+
+      - name: wind_speed
+        description: "Wind speed in m/s"
+
+      - name: ingested_at
+        description: "When the record was loaded by Airbyte"
+        tests:
+          - not_null
+
+      - name: latitude
+        description: "Location latitude"
+        tests:
+          - not_null
+
+      - name: longitude
+        description: "Location longitude"
+        tests:
+          - not_null
+
+
+  - name: stg_weather_forecast
+    description: "Staged hourly forecast weather data from OpenWeather One Call API. One row per forecast hour per location."
+
+    columns:
+      - name: forecast_timestamp
+        description: "Unix timestamp (UTC) of the forecast period"
+        tests:
+          - not_null
+
+      - name: temperature_kelvin
+        description: "Predicted temperature in Kelvin"
+        tests:
+          - not_null
+
+      - name: humidity_percent
+        description: "Predicted humidity percentage"
+        tests:
+          - not_null
+
+      - name: wind_speed
+        description: "Predicted wind speed in m/s"
+
+      - name: pop
+        description: "Probability of precipitation (0-1)"
+
+      - name: ingested_at
+        description: "When the record was loaded by Airbyte"
+        tests:
+          - not_null
+
+      - name: latitude
+        description: "Location latitude"
+        tests:
+          - not_null
+          
+      - name: longitude
+        description: "Location longitude"
+        tests:
+          - not_null

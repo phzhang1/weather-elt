@@ -1,0 +1,129 @@
+version: 2
+
+models:
+  - name: fact_weather_current
+    description: "Current weather conditions – latest snapshot per location. Analytics-ready: temperature in °C, wind in km/h. Grain (latitude, longitude) is unique."
+
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - latitude
+            - longitude
+      - dbt_utils.recency:
+          datepart: hour
+          field: ingested_at
+          interval: 2
+
+    columns:
+      - name: latitude
+        description: "Location latitude"
+        tests: [not_null]
+
+      - name: longitude
+        description: "Location longitude"
+        tests: [not_null]
+
+      - name: observation_timestamp
+        description: "Unix timestamp (UTC) of the observation (latest for this location)"
+        tests: [not_null]
+
+      - name: ingested_at
+        description: "When the record was loaded by Airbyte (latest ingestion for this observation)"
+        tests: [not_null]
+
+      - name: temperature_kelvin
+        description: "Temperature in Kelvin (source unit)"
+
+      - name: temperature_celsius
+        description: "Temperature in Celsius (business unit)"
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: -50
+              max_value: 50
+              inclusive: true
+
+      - name: humidity_percent
+        description: "Humidity percentage (0-100)"
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 100
+              inclusive: true
+
+      - name: wind_speed_m_s
+        description: "Wind speed in m/s (source unit)"
+
+      - name: wind_speed_km_h
+        description: "Wind speed in km/h (business unit)"
+
+  - name: fact_weather_forecast_hourly
+    description: "Hourly weather forecast, one row per location per forecast hour. Analytics-ready for planning and alerts. Grain (latitude, longitude, forecast_timestamp) is enforced via a unique test."
+
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - latitude
+            - longitude
+            - forecast_timestamp
+      - dbt_utils.recency:
+          datepart: hour
+          field: ingested_at
+          interval: 1
+
+    columns:
+      - name: latitude
+        description: "Location latitude"
+        tests: [not_null]
+
+      - name: longitude
+        description: "Location longitude"
+        tests: [not_null]
+
+      - name: forecast_timestamp
+        description: "Unix timestamp (UTC) of the forecast period"
+        tests: [not_null]
+
+      - name: ingested_at
+        description: "When the record was loaded by Airbyte"
+        tests: [not_null]
+
+      - name: temperature_kelvin
+        description: "Predicted temperature in Kelvin (source unit)"
+
+      - name: temperature_celsius
+        description: "Predicted temperature in Celsius (business unit)"
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: -50
+              max_value: 50
+              inclusive: true
+
+      - name: humidity_percent
+        description: "Predicted humidity percentage"
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 100
+              inclusive: true
+
+      - name: wind_speed_m_s
+        description: "Predicted wind speed in m/s"
+
+      - name: wind_speed_km_h
+        description: "Predicted wind speed in km/h"
+
+      - name: precipitation_probability
+        description: "Probability of precipitation (0-1)"
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 1
+              inclusive: true
+
+      - name: precipitation_probability_percent
+        description: "Probability of precipitation as percent (0-100)"
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 100
+              inclusive: true

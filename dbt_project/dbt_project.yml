@@ -1,0 +1,32 @@
+name: 'weather_pipeline'
+version: '1.0.0'
+config-version: 2
+
+flags:
+  bigquery_use_batch_source_freshness: true
+
+profile: 'weather_pipeline'
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["data"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+target-path: "target"
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+models:
+  weather_pipeline:
+    staging:
+      +materialized: view
+      +schema: staging
+    marts:
+      +materialized: table
+      +schema: marts
+      
+vars:
+  start_date: '2025-01-01'

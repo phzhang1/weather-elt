@@ -1,0 +1,14 @@
+version: 2
+
+sources: # external data sources
+  - name: raw
+    database: weather-elt-2026 # BigQuery project ID
+    schema: raw  # BigQuery dataset name
+    tables:
+      - name: onecall
+        description: "Raw OpenWeather One Call API data. Contains current weather plus hourly/daily forecast arrays."
+        config:
+          loaded_at_field: _airbyte_extracted_at
+          freshness:
+            warn_after: {count: 2, period: hour}
+            error_after: {count: 6, period: hour}

@@ -1,0 +1,269 @@
+version: 7.10.0
+
+type: DeclarativeSource
+
+check:
+  type: CheckStream
+  stream_names:
+    - onecall
+
+streams:
+  - type: DeclarativeStream
+    name: onecall
+    retriever:
+      type: SimpleRetriever
+      requester:
+        type: HttpRequester
+        url: https://api.openweathermap.org/data/3.0/onecall
+        http_method: GET
+        error_handler:
+          type: CompositeErrorHandler
+          error_handlers:
+            - type: DefaultErrorHandler
+              response_filters:
+                - type: HttpResponseFilter
+                  action: RETRY
+                  http_codes:
+                    - 500
+        request_parameters:
+          lat: "{{ stream_partition['location']['lat'] }}"
+          lon: "{{ stream_partition['location']['lon'] }}"
+          lang: "{{ config.get('lang')}}"
+          appid: "{{ config['appid'] }}"
+          units: "{{ config.get('units')}}"
+      record_selector:
+        type: RecordSelector
+        extractor:
+          type: DpathExtractor
+          field_path: []
+      partition_router:
+        type: ListPartitionRouter
+        values: "{{ config['locations'] }}"
+        cursor_field: location
+    schema_loader:
+      type: InlineSchemaLoader
+      schema:
+        type: object
+        $schema: http://json-schema.org/draft-07/schema#
+        properties:
+          lat:
+            type: number
+            description: Latitude of the requested location
+          lon:
+            type: number
+            description: Longitude of the requested location
+          daily:
+            type: array
+            description: Weather forecast for the next 7 days
+          alerts:
+            type: array
+            description: Weather alerts for the requested location
+          hourly:
+            type: array
+            description: Weather forecast for the next 48 hours
+          current:
+            type: object
+            description: Contains current weather data
+            properties:
+              dt:
+                type: number
+                description: Time of the data forecasted
+              uvi:
+                type: number
+                description: UV index
+              rain:
+                type: object
+                description: Information about precipitation in the last hour
+                properties:
+                  1h:
+                    type: number
+                    description: Rain volume for the last hour
+                additionalProperties: true
+              temp:
+                type: number
+                description: Temperature
+              clouds:
+                type: number
+                description: Cloudiness percentage
+              sunset:
+                type: number
+                description: Sunset time
+              sunrise:
+                type: number
+                description: Sunrise time
+              weather:
+                type: array
+                description: Weather condition
+              humidity:
+                type: number
+                description: Humidity percentage
+              pressure:
+                type: number
+                description: Atmospheric pressure on the sea level
+              wind_deg:
+                type: number
+                description: Wind direction in degrees
+              dew_point:
+                type: number
+                description: Dew point temperature
+              feels_like:
+                type: number
+                description: Apparent (feels like) temperature
+              visibility:
+                type: number
+                description: Visibility distance
+              wind_speed:
+                type: number
+                description: Wind speed in meters per second
+            additionalProperties: true
+          minutely:
+            type: array
+            description: Minute forecast for the next hour
+          timezone:
+            type: string
+            description: Time zone name for the requested location
+          timezone_offset:
+            type: number
+            description: Time offset in seconds from UTC
+        additionalProperties: true
+
+spec:
+  type: Spec
+  connection_specification:
+    type: object
+    $schema: http://json-schema.org/draft-07/schema#
+    required:
+      - appid
+      - locations
+    properties:
+      lang:
+        type: string
+        description: >-
+          You can use lang parameter to get the output in your language. The
+          contents of the description field will be translated. See <a
+          href="https://openweathermap.org/api/one-call-api#multi">here</a> for
+          the list of supported languages.
+        enum:
+          - af
+          - al
+          - ar
+          - az
+          - bg
+          - ca
+          - cz
+          - da
+          - de
+          - el
+          - en
+          - eu
+          - fa
+          - fi
+          - fr
+          - gl
+          - he
+          - hi
+          - hr
+          - hu
+          - id
+          - it
+          - ja
+          - kr
+          - la
+          - lt
+          - mk
+          - "no"
+          - nl
+          - pl
+          - pt
+          - pt_br
+          - ro
+          - ru
+          - sv
+          - se
+          - sk
+          - sl
+          - sp
+          - es
+          - sr
+          - th
+          - tr
+          - ua
+          - uk
+          - vi
+          - zh_cn
+          - zh_tw
+          - zu
+        order: 1
+        examples:
+          - en
+          - fr
+          - pt_br
+          - uk
+          - zh_cn
+          - zh_tw
+      appid:
+        type: string
+        description: API KEY
+        order: 0
+        airbyte_secret: true
+      units:
+        type: string
+        description: >-
+          Units of measurement. standard, metric and imperial units are
+          available. If you do not use the units parameter, standard units will
+          be applied by default.
+        enum:
+          - standard
+          - metric
+          - imperial
+        order: 3
+        examples:
+          - standard
+          - metric
+          - imperial
+      locations:
+        type: array
+        description: List of locations to fetch weather for
+        items:
+          type: object
+          required:
+            - lat
+            - lon
+          properties:
+            lat:
+              type: number
+              description: Latitude coordinate
+              title: Latitude
+              maximum: 90
+              minimum: -90
+            lon:
+              type: number
+              description: Longitude coordinate
+              title: Longitude
+              maximum: 180
+              minimum: -180
+            name:
+              type: string
+              description: Human-readable name for this location
+              title: Location Name
+        order: 4
+        title: Locations
+      only_current:
+        type: boolean
+        description: True for particular day
+        order: 2
+        example:
+          - "true"
+    additionalProperties: true
+
+metadata:
+  testedStreams:
+    onecall:
+      isStale: false
+      hasRecords: true
+      streamHash: eb67317defe99d27e700ed707f21e2509b5d728c
+      hasResponse: true
+      primaryKeysAreUnique: true
+      primaryKeysArePresent: true
+      responsesAreSuccessful: true
+  autoImportSchema: {}
