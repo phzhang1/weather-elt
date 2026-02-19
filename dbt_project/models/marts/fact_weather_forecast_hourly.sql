@@ -1,5 +1,10 @@
 {{
-  config(alias='fact_weather_forecast_hourly')
+  config(
+    alias='fact_weather_forecast_hourly',
+    materialized='incremental',
+    unique_key=['latitude', 'longitude', 'forecast_timestamp'],
+    incremental_strategy='merge'
+  )
 }}
 
 with staged as (
@@ -13,6 +18,9 @@ with staged as (
     wind_speed,
     pop
   from {{ ref('stg_weather_forecast') }}
+  {% if is_incremental() %}
+    where forecast_timestamp > (select max(forecast_timestamp) from {{ this }})
+  {% endif %}
 ),
 
 -- One row per (latitude, longitude, forecast_timestamp): pick latest by ingested_at
