@@ -1,3 +1,12 @@
+/*
+  Mart table: hourly weather forecast – one row per location per forecast hour.
+  Grain: (latitude, longitude, forecast_timestamp).
+  Deduplication: within each grain, keeps the latest row by ingested_at using array_agg.-
+  -- This ensures that even if multiple syncs deliver the same forecast hour, we only keep the most recent.
+  Incremental strategy: merge on unique_key to update existing forecasts with newer versions.
+  -- The merge strategy ensures we never have duplicates and always have the latest forecast.
+  Business logic: unit conversions (K → °C, m/s → km/h, probability → percent).
+*/
 {{
   config(
     alias='fact_weather_forecast_hourly',
@@ -7,6 +16,7 @@
   )
 }}
 
+-- Round coordinates for consistent grouping (see note in fact_weather_current)
 with staged as (
   select
     round(latitude, 6) as latitude,
@@ -19,11 +29,12 @@ with staged as (
     pop
   from {{ ref('stg_weather_forecast') }}
   {% if is_incremental() %}
+  -- Incremental filter: only fetch forecast hours newer than the latest already in the table.
+  -- Assumes forecast_timestamp increases monotonically with new data.
     where forecast_timestamp > (select max(forecast_timestamp) from {{ this }})
   {% endif %}
 ),
 
--- One row per (latitude, longitude, forecast_timestamp): pick latest by ingested_at
 deduped as (
   select
     latitude,

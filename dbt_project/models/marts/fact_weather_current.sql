@@ -1,7 +1,14 @@
+/*
+  Mart table: current weather conditions – latest snapshot per location.
+  Grain: one row per (latitude, longitude).
+  Deduplication: uses array_agg to pick the latest observation per location.
+  Business logic: unit conversions (K → °C, m/s → km/h).
+*/
 {{
   config(alias='fact_weather_current')
 }}
 
+-- Round coordinates to 6 decimal places to ensure consistent grouping despite floating-point precision issues
 with staged as (
   select
     round(latitude, 6) as latitude,
@@ -14,7 +21,6 @@ with staged as (
   from {{ ref('stg_weather_current') }}
 ),
 
--- One row per (latitude, longitude): pick the latest by observation_timestamp then ingested_at
 deduped as (
   select
     latitude,
